@@ -6,29 +6,44 @@ import java.io.Serializable;
 import java.util.Random;
 
 public class Field extends Publisher implements Serializable {
-    private static int size = 20;
+    private static final int size = 20;
     private Tile[][] field = new Tile[size][size];
-    private boolean mineStatus = false; // default mine tile status
     private int playerX = 0, playerY = 0; // Player starts at (0,0)
     public static int percentMined = 5; // % of tiles mined
     private boolean gameOver = false; // Track game state
 
     public Field() {
+        Random rand = new Random();
+        int totalMines = (size * size * percentMined) / 100; // Determine number of mines
+
+        // Initialize field with empty tiles
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                field[i][j] = new Tile(i, j, mineStatus); // will need to reconfig this but just do the default now
+                field[i][j] = new Tile(i, j, false);
             }
         }
-        notifySubscribers("Field initialized");
+
+        // Randomly place mines
+        for (int i = 0; i < totalMines; i++) {
+            int x, y;
+            do {
+                x = rand.nextInt(size);
+                y = rand.nextInt(size);
+            } while (field[x][y].getMineStatus()); // Ensure we don't place a mine on an already mined tile
+
+            field[x][y].setMineStatus(true);
+        }
+
+        notifySubscribers("Field initialized with " + totalMines + " mines.");
     }
+
     public Tile getTile(int x, int y) {
         if (x >= 0 && x < size && y >= 0 && y < size) {
             return field[x][y];
-        } else {
-            return null; // Handle out-of-bounds access safely
         }
+        return null; // Handle out-of-bounds access safely
     }
-    // Move the player if the game is still running
+
     public boolean movePlayer(String direction) {
         if (gameOver) return false;
 
@@ -45,7 +60,7 @@ public class Field extends Publisher implements Serializable {
         }
 
         // Validate new position
-        if (newX >= 0 && newX < SIZE && newY >= 0 && newY < SIZE) {
+        if (newX >= 0 && newX < size && newY >= 0 && newY < size) {
             playerX = newX;
             playerY = newY;
 
